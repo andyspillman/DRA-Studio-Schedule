@@ -1,0 +1,9 @@
+create a notes text area under each week, write to seperate table
+
+
+semester setup
+
+DELETE EXPIRED SESSIONS REGULARLY
+maybe:
+
+change color of owner based on when timeblock was selected
