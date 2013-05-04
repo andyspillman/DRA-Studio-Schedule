@@ -1,17 +1,14 @@
 #!/usr/bin/perl
-#require "cgi-lib.pl";
-#require "tools.pl";
 use strict;
 use warnings;
 
 use CGI qw/:standard/;
 use CGI::Session;
 use FindBin qw($Bin);
-use lib "$Bin/database";
+use lib "$Bin/../lib/";
 use DateTime;
-require DatabaseUtil;
 use DateTime::Format::Strptime;
-
+use DatabaseUtil;
 ### START file-level variables
 
 

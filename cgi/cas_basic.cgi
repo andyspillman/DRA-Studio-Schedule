@@ -54,7 +54,7 @@ if (defined($cas_ticket) && $cas_ticket =~ m/^ST-\d+-[A-Za-z0-9]+-casprd\d\d.uit
 
     my $session = CGI::Session->new('driver:sqlite',undef, {DataSource=>'database/session.db'}) or die (CGI::Session->errstr);
 #   $CGISESSID = $session->id();
-    $session->expire("15s");
+    $session->expire("5m");
     $session->param('username',$cas_username);
     print $session->header(-Refresh=>"0; URL=index.pl");
     print "$cas_username was authenticated.";

@@ -1,4 +1,12 @@
 create a notes text area under each week, write to seperate table
+reserved dropdown - make text box appear
+write script to reimport excel
+
+handle 2 people at same timeblock
+
+create initial semester times
+config files
+config-params: semester start, end
 
 
 semester setup

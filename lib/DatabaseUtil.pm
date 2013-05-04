@@ -1,17 +1,20 @@
 use strict;
 use warnings;
 
-my $databasename = './database/test.db';
-my $sessionsdbname='sessions.db';
+use File::ShareDir ':ALL';
+
+
 package DatabaseUtil;
+my $databasename = 'test.db';
+my $sessionsdbname='sessions.db';
 
 use DBI;
 
-my $dbfile="test.db";
+our $dbfile="test.db";
 
-my $dbh = DBI->connect("dbi:SQLite:dbname=$databasename","{RaiseError => 1}","");
+our $dbh = DBI->connect("dbi:SQLite:dbname=$databasename","{RaiseError => 1}","");
 
-  my $realname;
+my $realname;
 my $sth_owner;
 my $user;
 
@@ -37,26 +40,6 @@ return $user;
  # return $owner;
 };
 
-
-sub prepblank{
-use DateTime;
-
-use DateTime::Format::Strptime;
-my $ymdformatter = DateTime::Format::Strptime->new(
-  pattern => '%Y%m%d',
-);
-
-my $startdate=DateTime->today()->truncate(to=>'week')->subtract(days=>1);
-$startdate->set_formatter($ymdformatter);
-my $enddate=$startdate->clone()->add(months=>5);
-print "startdate=".$startdate;
-print "enddate=".$enddate;
-  for(my $i=$startdate->clone();$i<$enddate;$i->add(days=>1)){
-      for(my $j=0; $j<5; $j++){
-      $dbh->do('INSERT INTO blocks VALUES ('.$i.','. $j.',\'-open-\')');
-    };
-  };
-};
 
 sub setowner{
 
@@ -107,11 +90,4 @@ sub isfaculty{
   my $isfaculty=(($sth_owner->fetchrow_array eq 'instructor') ? 1 : 0);
   return $isfaculty; 
 }
-
-#sub recreatesessionsdb{
-
- # my $dbh = DBI->connect("dbi:SQLite:dbname=$sessionsdbname","{RaiseError => 1}","");
- # $dbh->do('CREATE TABLE sessions ( id CHAR(32) NOT NULL PRIMARY KEY,
- #       a_session TEXT NOT NULL');
-#}
 return 1;
