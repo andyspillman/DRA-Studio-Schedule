@@ -1,18 +1,19 @@
 use strict;
 use warnings;
 
-use File::ShareDir ':ALL';
-
 
 package DatabaseUtil;
-my $databasename = 'test.db';
-my $sessionsdbname='sessions.db';
+our $dbdir='../db/';
+my $databasename = 'test.db';#pref
+our $sessionsdbname='sessions.db';
 
 use DBI;
 
-our $dbfile="test.db";
+#database connection for CGI Session
+our $sessions_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir$sessionsdbname","{RaiseError => 1}","");
 
-our $dbh = DBI->connect("dbi:SQLite:dbname=$databasename","{RaiseError => 1}","");
+#database connection for 
+our $dbh = DBI->connect("dbi:SQLite:dbname=$dbdir$databasename","{RaiseError => 1}","");
 
 my $realname;
 my $sth_owner;

@@ -12,6 +12,11 @@ use CGI qw/:standard/;
 use CGI::Session;
 require CGI::Session::Driver::DBI;
 
+use FindBin qw($Bin);
+use lib "$Bin/../lib/";
+use DatabaseUtil;
+
+
 # Create application objects
 my $cgi = new CGI;
 my $ua = new LWP::UserAgent;
@@ -51,8 +56,9 @@ if (defined($cas_ticket) && $cas_ticket =~ m/^ST-\d+-[A-Za-z0-9]+-casprd\d\d.uit
 # Take whatever action is appropriate for a successful authentication.
 #        print $cgi->header();
 
+my $session = CGI::Session->new('driver:sqlite',undef,
+    {Handle=>$DatabaseUtil::sessions_dbh}) or die (CGI::Session->errstr);
 
-    my $session = CGI::Session->new('driver:sqlite',undef, {DataSource=>'database/session.db'}) or die (CGI::Session->errstr);
 #   $CGISESSID = $session->id();
     $session->expire("5m");
     $session->param('username',$cas_username);

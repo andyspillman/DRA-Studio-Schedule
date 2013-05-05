@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 use strict;
 use warnings;
 
@@ -9,51 +8,59 @@ use lib "$Bin/../lib/";
 use DateTime;
 use DateTime::Format::Strptime;
 use DatabaseUtil;
-### START file-level variables
+
+##load session if logged in
+my $session = CGI::Session->new('driver:sqlite',undef,
+    {Handle=>$DatabaseUtil::sessions_dbh}) or die (CGI::Session->errstr);
 
 
-my $session = CGI::Session->load('driver:sqlite',undef, {DataSource=>'database/session.db'}) or die (CGI::Session->errstr);
-if (param('logout')){
-    $session->delete();
-#print header(-Refresh);
-    
-};
-
+#####Declare,Define DateTime Objs from query
 my $ymdformatter = DateTime::Format::Strptime->new(
     pattern => '%Y%m%d',
     );
-
-
+my $weekstart = DateTime->now();
+my $weekend = DateTime->now();
 my $curr_dt = DateTime->now( time_zone => 'local') ->set_time_zone('floating');
 $curr_dt->set_formatter($ymdformatter);
-my $weekstart;
 my $weekstartstr=param('weekstart'); 
-if (!$weekstartstr){#if page is opened without ?weekstart=, assume current week
+if (!param('weekstart')){#if page is opened without ?weekstart=, assume current week
   $weekstart=$curr_dt->clone()->truncate(to=>'week')->subtract(days=>1);
 }
 else{
   $weekstart= $ymdformatter->parse_datetime($weekstartstr);
 };
-#
 
+# $weekstart->set_formatter must be called AFTER the above else
+# statement, because DateTime::Format::Striptime::parse_datetime() returns
+# a NEW DateTime object
 
 $weekstart->set_formatter($ymdformatter);
+$weekend = $weekstart+DateTime::Duration->new(days=>7);
+
+#####End DateTime Defines
+
 
 my $dropdowndate;
 my $tablecol = 0;
 my $timeblock = 1;
 
 
-
+###make labels for users' real names for drop downs from user table
 my @labels=@{DatabaseUtil::makelabels()};
 my %labels=@labels;
-my $username = $session->param('username') // param('pretend');
-#my $username = 'asdf' // " ";
-my $realname =  DatabaseUtil::getrealname($username);
-
-#### END file-level variables
 
 
+#define currently logged in user, if any
+my $username = $session->param('username') // param('pretend') // "";
+
+
+#set to determine permissions
+
+my $faculty;
+$faculty = DatabaseUtil::isfaculty($username) unless !$username;
+
+
+updatedb();#updates database based on query
 
 ###START HTML
 print $session->header(-expires=>'now');
@@ -62,23 +69,17 @@ print start_html(-title=>'DRA Studio Sign out sheet',
     -head=>meta({-http_equiv => 'Content-Language',
       -content => 'en'}));
     if (!$username) { #ADD || $SESSION->IS_EMPTY probably
-print a({-href=>'cas_basic.cgi'}, "CAS Login");
+      print a({-href=>'cas_basic.cgi'}, "CAS Login");
     } else{
-print p("Currently logged in as $realname.");
-print a({-href=>url(-base=>1)."/room/cgi-bin/Logout.pl"}, "Logout");
-print p("faculty?".DatabaseUtil::isfaculty($username));
-};
-updatedb();#updates database based on query
-
-print "Current date:".$curr_dt."<BR>";
-print  "Week start date:".$weekstart."<BR><BR>";
-
-print span({class=>'week'},"Week of: ".$weekstart->strftime('%B %d')." - ". $weekstart->clone()->add(days=>6)->strftime('%B %d')."<BR>");
-#if(($weekstart<$curr_dt)&&($curr_dt<$weekstart+DateTime::Duration->new(days=>7)
-#){
-#}else{
-#print a({-href=>url(-relative=>1)}, "Current Week");
-#};
+      print p("Currently logged in as ".DatabaseUtil::getrealname($username));
+      print a({-href=>url(-base=>1)."/room/cgi-bin/Logout.pl"}, "Logout");
+      if(DatabaseUtil::isfaculty($username)){
+        print p("You are faculty");
+      };
+    };
+#print p("Current date:$curr_dt");
+print span({class=>'week'},"Week of: ".$weekstart->strftime('%B %d')." - ".
+    $weekstart->clone()->add(days=>6)->strftime('%B %d')."<BR>");
 print <<STOP1;
 <table>
 <tr>
@@ -95,16 +96,21 @@ print <<STOP1;
 STOP1
 
 buildtable();
+print p(a({-href=>url(-relative=>1)."?weekstart=".$weekstart->clone()->
+      subtract(weeks=>1)}, "Previous Week").a({-href=>url(-relative=>1).
+      "?weekstart=".$weekstart->clone()->add(weeks=>1)}, "Next Week"));
 
-print a({-href=>url(-relative=>1)."?weekstart=".$weekstart->clone()->subtract(weeks=>1)}, "Previous Week");
-#print"<p>         </p>";
-print a({-href=>url(-relative=>1)."?weekstart=".$weekstart->clone()->add(weeks=>1)}, "Next Week");
-
+if(!(($weekstart<$curr_dt)&&($curr_dt<$weekend))){
+  print p(a({-href=>url(-relative=>1)}, "Current Week"));
+};
 print end_html();
 # END HTML
 
 
+##flush because documentation recommends it
 $session->flush();
+
+
 #####start SUBS
 
 sub buildtable{
@@ -118,6 +124,7 @@ sub buildtable{
     $timeblock++;
     $tablecol=0;
   };
+  print "</table>";
 }
 
 sub makecell{
@@ -142,7 +149,7 @@ sub fillcell{
 
 
   $dropdowndate = $weekstart->clone->add(days=>$tablecol-1)->ymd('');
-  if (($username eq $timeblockowner)||DatabaseUtil::isfaculty($username)){
+  if (($username eq $timeblockowner)||$faculty){
     if ($labels{$timeblockowner}){
       dropdown($timeblockowner);
     }else{
@@ -196,4 +203,3 @@ sub updatedb{
     };
   }
 };
-
