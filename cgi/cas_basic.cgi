@@ -12,6 +12,9 @@ use CGI qw/:standard/;
 use CGI::Session;
 require CGI::Session::Driver::DBI;
 
+$CGI::POST_MAX=1024 * 100;  # max 100K posts
+$CGI::DISABLE_UPLOADS = 1;  # no uploads
+
 use FindBin qw($Bin);
 use lib "$Bin/../lib/";
 use DatabaseUtil;

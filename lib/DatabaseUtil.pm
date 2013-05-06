@@ -12,7 +12,7 @@ use DBI;
 #database connection for CGI Session
 our $sessions_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir$sessionsdbname","{RaiseError => 1}","");
 
-#database connection for 
+#database connection for time assignments
 our $dbh = DBI->connect("dbi:SQLite:dbname=$dbdir$databasename","{RaiseError => 1}","");
 
 my $realname;
@@ -80,7 +80,7 @@ sub makelabels{
   while (($username, $realname) = $sth_owner->fetchrow_array) {
     push(@labels,($username, $realname));
   }
-  push (@labels, ('-open-', '-open-','-reserved-','-reserved-'));
+  push (@labels, ('-open-', '-open-'));
   return \@labels;
 
 };

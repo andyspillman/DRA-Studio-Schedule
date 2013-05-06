@@ -5,6 +5,8 @@ use DatabaseUtil;
 
 use CGI qw/:standard/;
 use CGI::Session;
+$CGI::POST_MAX=1024 * 100;  # max 100K posts
+$CGI::DISABLE_UPLOADS = 1;  # no uploads
 #use FindBin qw($Bin);
 #:w
 #use lib "$Bin/database";
