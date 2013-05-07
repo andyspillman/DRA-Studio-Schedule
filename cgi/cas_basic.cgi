@@ -58,7 +58,10 @@ if (defined($cas_ticket) && $cas_ticket =~ m/^ST-\d+-[A-Za-z0-9]+-casprd\d\d.uit
 
 # Take whatever action is appropriate for a successful authentication.
 #        print $cgi->header();
-
+    $DatabaseUtil::sessions_dbh->do('CREATE TABLE IF NOT EXISTS sessions (
+        id CHAR(32) NOT NULL PRIMARY KEY,
+        a_session TEXT NOT NULL)'
+        );
 my $session = CGI::Session->new('driver:sqlite',undef,
     {Handle=>$DatabaseUtil::sessions_dbh}) or die (CGI::Session->errstr);
 

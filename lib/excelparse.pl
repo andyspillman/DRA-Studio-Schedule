@@ -4,10 +4,10 @@ use warnings;
 use strict;
 use Spreadsheet::ParseExcel;
 
-# This assumes worksheet is arranged with columns, in order: (realname, username, x, Role),
-# with column headings in first row (0) and data beginning in next row.
-# If roster is exported from Oncourse in different format, change the following values, furthest
-# left column is 0.
+# This assumes worksheet is arranged with columns, in order: (realname,
+# username, x, Role), with column headings in first row (0) and data beginning
+# in next row.  If roster is exported from Oncourse in different format,
+# change the following values, furthest left column is 0.
 
 
 my $realname_col = 0;   #column of Real Name

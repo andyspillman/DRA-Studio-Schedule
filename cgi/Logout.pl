@@ -13,7 +13,13 @@ $CGI::DISABLE_UPLOADS = 1;  # no uploads
 
 my $session = CGI::Session->load('driver:sqlite',undef, {Handle=>$DatabaseUtil::sessions_dbh}) or die (CGI::Session->errstr);
     $session->delete();
-print header(-Refresh=>'0;url='.url(-base=>1).'/room/cgi-bin/index.pl');
-    
+#print header();
+#print start_html(-title=>'DRA Studio Sign out sheet',
+#    -style=>{'src'=>'/room/draStudioSched.css'},
+#    -head=>meta({-http_equiv => 'Content-Language',
+#      -content => 'en'}));
+ 
+my ($path_to_here, $filename) = (url(-full=>1) =~ /(.+)(\/Logout.pl)/);
+#print p($path_to_here.$filename);
 
-
+print header(-Refresh=>'0;url=https://cas.iu.edu/cas/logout?casurl='.$path_to_here.'/index.pl');
