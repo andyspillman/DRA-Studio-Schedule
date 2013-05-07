@@ -41,7 +41,7 @@ use DBI;
       {Handle=>$DatabaseUtil::sessions_dbh}) or die (CGI::Session->errstr);
   our $username = $session->param('username') // "";
   my ($path_to_here, $filename) = (url(-full=>1) =~ /(.+)(\/.+\.pl)/);
-    my ($sth,@names,$row,$timeblock_length,$visible);
+    my ($sth,@roomnames,$row,$timeblock_length,$visible);
   print $session->header(-expires=>'now');
   print start_html(-title=>'DRA Studio Sign out sheet',
       -style=>{'src'=>'/room/draStudioSched.css'},
@@ -58,40 +58,44 @@ use DBI;
   if($faculty){
 
 #database connection for config
-    my $config_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir/config.db",
-        "{RaiseError => 1}","")or die;
-    $config_dbh->do('CREATE TABLE IF NOT EXISTS rooms (name TEXT DEFAULT new
+    $DatabaseUtil::config_dbh->do('CREATE TABLE IF NOT EXISTS rooms (name TEXT DEFAULT new
           PRIMARY KEY, timeblock_length TEXT DEFAULT \'2 hours\', visible TEXT
           DEFAULT 1)');
     if(param('which_room')){
       if(param('delete')){
-          $sth = $config_dbh->prepare('DELETE FROM rooms WHERE name=?');
+          $sth = $DatabaseUtil::config_dbh->prepare('DELETE FROM rooms WHERE name=?');
           $sth->execute(param('which_room'));
           }else{
-          $sth = $config_dbh->prepare('UPDATE rooms SET timeblock_length=?,
+          $sth = $DatabaseUtil::config_dbh->prepare('UPDATE rooms SET timeblock_length=?,
             visible=? WHERE name=?');
           $sth->execute(param('timeblock_length'),(param('visible')? 1 : 0),
             param('which_room'));
-          print ("hey".param('timeblock_length').(param('visible')? 1 : 0));
           };
           Delete_all();
           }elsif(param('new_room')){
-          $sth = $config_dbh->prepare('INSERT INTO rooms (name) VALUES (?)');
+          $sth = $DatabaseUtil::config_dbh->prepare('INSERT INTO rooms (name) VALUES (?)');
           $sth->execute(param('new_room'));
           Delete_all();
-          }; 
+          }elsif(param('semester_setup_room')){
+            DatabaseUtil::semestersetup(param('start_date'),param('end_date'),
+                param('semester_setup_room'))
+              unless((param('start_date')>param('end_date')||
+                    (param('start_date')+10000)<param('end_date'));#check for super out-of-range dates
+#that would crash server or make gigantic databases
+              Delete_all();
+              }; 
 
 #generate array of room titles
-   $sth = $config_dbh->prepare('SELECT name from rooms');
+   $sth = $DatabaseUtil::config_dbh->prepare('SELECT name from rooms');
     $sth->execute();
     $sth->bind_col(1,\$row);
     while ($sth->fetch()){
-      push (@names, $row);
+      push (@roomnames, $row);
     }
 
     print h1("Schedule Options:");
-    foreach my $room_name (@names){
-      $sth = $config_dbh->prepare("SELECT timeblock_length, visible  from rooms where name=?");
+    foreach my $room_name (@roomnames){
+      $sth = $DatabaseUtil::config_dbh->prepare("SELECT timeblock_length, visible  from rooms where name=?");
       $sth->execute($room_name);
       $sth->bind_columns(\$timeblock_length,\$visible);
       $sth->fetch();
@@ -113,12 +117,24 @@ use DBI;
       print'<BR><BR>';
 
     }
-    print "<BR><BR>.start_form().
+    print start_form().
      h1("Create new schedule.").
       textfield(-name=>'new_room',-value=>'new-schedule-name',-size=>20,
           -maxlength=>20).
       submit(-value=>'Create Schedule').
       end_form();
+
+print h1 ("Semester Setup").
+span("Create blank timeblocks for the below date range.  Enter dates as YYYYMMDD").
+start_form().
+textfield(-name=>'start_date',-value=>'start',-size=>8,-maxlength=>8).
+textfield(-name=>'end_date',-value=>'end',-size=>8,-maxlength=>8).
+popup_menu(-name=>'semester_setup_room', values=>\@roomnames).
+submit().
+end_form();
+
+
+
 
   }else{
     print p("You don't appear to be faculty. Try logging out and revist this page.").

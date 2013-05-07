@@ -1,7 +1,7 @@
 use strict;
 use warnings;
-my $beta;
+use FindBin qw($Bin);
+use lib "$Bin/../lib/";
 
-(my $alpha =$beta //  5);
-
-print $alpha;
+use DatabaseUtil;
+DatabaseUtil::numberoftimeblocksforroom('456');
