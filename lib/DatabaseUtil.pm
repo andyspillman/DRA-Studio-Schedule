@@ -7,8 +7,6 @@ use DateTime::Format::Strptime;
 use DBI;
 use FindBin qw($Bin);
 
-
-
 our $dbdir = "$Bin/../db";
 
 package DatabaseUtil;
@@ -25,7 +23,7 @@ our $sessions_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir/$sessionsdbname","{Ra
 our $timeblocks_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir/rooms.db","{RaiseError => 1}","");
 
 #database connection for rosters, table names are room names
-our $rosters_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir/test.db","{RaiseError => 1}","");
+our $rosters_dbh = DBI->connect("dbi:SQLite:dbname=$dbdir/$rostersdbname","{RaiseError => 1}","");
 
 
 my $ymdformatter = DateTime::Format::Strptime->new( pattern => '%Y%m%d');
@@ -34,19 +32,41 @@ my $sth;
 my $user;
 our $room;
 
+sub is_visible{
+  my $visible;
+  $sth = $DatabaseUtil::config_dbh->prepare('SELECT visible FROM rooms WHERE name=?');
+  $sth->execute($_[0]);
+  $sth->bind_col(1,\$visible);
+  $sth->fetch();
+  return $visible;
+}
+
+#make an array containing all the room names
+sub roomnames{
+  my ($row,@roomnames);
+  $sth = $DatabaseUtil::config_dbh->prepare('SELECT name FROM rooms');
+  $sth->execute();
+  $sth->bind_col(1,\$row);
+  while ($sth->fetch()){
+    push (@roomnames, $row);
+  }
+  return \@roomnames;
+}
+
+
+
 
 ###since $room is used directly in SQL query, as table names cannot used in
 ##prepared statementm, this runs a simple check #to make sure it is an actual
 #room that has a row in the config table, #else it could be SQL injection.
-
-
 sub verify_room{
   my $row;
-  $sth = $config_dbh->prepare('SELECT name from rooms');
+  my $room = shift;
+  $sth = $config_dbh->prepare('SELECT name FROM rooms');
   $sth->execute();
   $sth->bind_col(1,\$row);
   while ($sth->fetch()){
-    print $row; 
+#    print $row; 
     if ($row eq $room){
       return 1;
     };
@@ -55,11 +75,11 @@ sub verify_room{
 };
 
 sub numberoftimeblocksforroom{
-  $sth = $config_dbh->prepare('SELECT timeblock_length FROM rooms where name = ?');
+  $sth = $config_dbh->prepare('SELECT timeblock_length FROM rooms WHERE name = ?');
   $sth->execute($_[0]);
 
-my $a = (scalar $sth->fetchrow_array())=~ /(^\d).*/; ###check
-return (16/$1);
+  my $a = (scalar $sth->fetchrow_array())=~ /(^\d).*/; ###check
+    return (16/$1);
 }
 
 sub semestersetup{
@@ -68,8 +88,8 @@ sub semestersetup{
   $room = shift;
   if(verify_room($room)){
 
-    $timeblocks_dbh->do("DROP TABLE '$room'");
-    $timeblocks_dbh->do("CREATE TABLE '$room' ('day','time','user')");
+    $timeblocks_dbh->do("DROP TABLE If EXISTS '$room'");
+    $timeblocks_dbh->do("CREATE TABLE '$room' ('day','time','user')") or die;
     my $startdate = $ymdformatter->parse_datetime($startdatestr);
     my $enddate = $ymdformatter->parse_datetime($enddatestr);
     $startdate->set_formatter($ymdformatter);
@@ -84,54 +104,61 @@ sub semestersetup{
 }
 sub getowner{
 
-  my $day = shift @_;
-  my $time = shift @_;
-my $sql = 'SELECT user FROM blocks WHERE day =(0+?) AND time = (0+?)'; #!!!
+  if(verify_room($main::room)){
+    my $day = shift @_;
+    my $time = shift @_;
+    my $user;
+ #   print "day:$day\ntime:$time\n";    
 
-  $sth = $timeblocks_dbh->prepare($sql);
-  $sth->execute($main::room,$day,$time)
-            or die "Couldn't execute statement: " . $sth->errstr;
-
-$sth->bind_columns(\$user);
-$sth->fetch();
+    $sth = $timeblocks_dbh->prepare("SELECT user FROM '$main::room' WHERE day =(0+?) AND time =(0+?)");
+    $sth->execute($day,$time)
+    or die "Couldn't execute statement: " . $sth->errstr;
+    $sth->bind_col(1,\$user);
+    $sth->fetch();
 #my @result = $sth->fetchrow_array();
-
-return $user;
-
+#    print $user;
+    return $user;
+  }
 #  my $owner =`sqlite3 database/test.db 'SELECT time$time from days where day=$date'`;
- # chomp ($owner);
- # return $owner;
+# chomp ($owner);
+# return $owner;
 };
 
 
 sub setowner{
 
+  if(verify_room($main::room)){
   my $date = shift @_;
   my $time = shift @_;
   my $newuser = shift @_;
 
-my $sql = 'UPDATE ? SET user =? WHERE day =(?+0) AND time =(?+0)';
-$sth = $timeblocks_dbh->prepare($sql);
-$sth->execute($main::room,$newuser,$date,$time);
+    my $sql = "UPDATE '$main::room' SET user =? WHERE day =(?+0) AND time =(?+0)";
+  
+  $sth = $timeblocks_dbh->prepare($sql);
+  $sth->execute($newuser,$date,$time);
 #return `sqlite3 database/test.db 'update days time$time=$newuser from days where day=$date'`;
+  };
 };
-
 
 sub getrealname{
 
-
 #my $username =shift;
 
-  $sth = $rosters_dbh->prepare('SELECT realname FROM users WHERE username=?');
+  if(verify_room($main::room)){
+    $sth = $rosters_dbh->prepare("SELECT realname FROM '$main::room'  WHERE username=?");
+ 
   $sth->execute($_[0]);
   $sth->bind_columns(\$realname);
   $sth->fetch(); 
- return $realname;
-
+  return $realname;
+};
 }
 
 sub makelabels{
-  $sth = $rosters_dbh->prepare('SELECT username, realname FROM users');
+
+#  if(verify_room($main::room)){
+    $sth = $rosters_dbh->prepare("SELECT username, realname FROM '$main::room'");
+  
   $sth->execute();
   my (@labels, $username, $realname);
   while (($username, $realname) = $sth->fetchrow_array) {
@@ -139,12 +166,13 @@ sub makelabels{
   }
   push (@labels, ('-open-', '-open-'));
   return \@labels;
+#  }
 };
 
 sub isfaculty{
-  $sth = $rosters_dbh->prepare('SELECT role FROM users where username=?');
+  $sth = $rosters_dbh->prepare('SELECT * FROM  faculty WHERE username=?');
   $sth->execute($_[0]);
-  my $isfaculty=(($sth->fetchrow_array eq 'instructor') ? 1 : 0);
-  return $isfaculty; 
-}
+  my $isfaculty=((scalar $sth->fetchrow_array) ? 1 : 0);#if fetchrow_array()
+    return $isfaculty;                                    #returns undef, then
+}###create faculty table later
 return 1;

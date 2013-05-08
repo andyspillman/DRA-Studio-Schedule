@@ -21,7 +21,7 @@ my $timeblock = 1;##this correlates with row, and row 0 is the headings, days
 
 ###called in main, builds table 
 sub buildtable{
-  until ($timeblock>4){
+  until ($timeblock>4){##check for how many timeblocks there actually are
     print "<tr>";
     until ($tablecol>7){
       makecell();
@@ -36,7 +36,7 @@ sub buildtable{
 
 ###called in buildtable(), makes headings and calls fillcell() for the juicy stuff
 sub makecell{
-  my @timeblockname = ("",
+  my @timeblockname = ("", ####call array of array refs of the various means of labeling
       "8 am - 12 pm",
       "12 pm - 4 pm",
       "4-pm - 8 pm",
@@ -74,12 +74,20 @@ sub makecell{
 
 
 sub fillcell{
-  my $timeblockowner = DatabaseUtil::getowner($main::weekstart->clone->add(days=>$tablecol-1), $timeblock);
-  $celldate = $main::weekstart->clone->add(days=>$tablecol-1)->ymd('');
+
+#if DatabaseUtil::getowner returns undef, likely the user has gone out of the range of defined
+#days, in which case nothing happens and the cell is blank
+  if (my $timeblockowner = DatabaseUtil::getowner($main::weekstart->clone->add(days=>$tablecol-1),
+        $timeblock)){ ###change to include $celldate instead???
+    $celldate = $main::weekstart->clone->add(days=>$tablecol-1)->ymd('');
   if ($timeblockowner =~ /^-reserved-(.*)/){
     if ($main::faculty){
       dropdown('-reserved-');
-      print startform().textarea(-name=>'reserved_details',-default=>$1,-rows=>5,
+
+#note:  excplitily defining -action="" ensures the browser uses the same URL after submitting
+#without it, CGI.pm puts in other action values, leading to the loss of URL query elements in some
+#cases
+      print start_form(-action=>"",-enctype=>'application/x-www-form-urlencoded').textarea(-name=>'reserved_details',-default=>$1,-rows=>5,
           -columns=>25,-maxlength=>50).
         hidden(-name=>'target_submit_block',
             -value=>$celldate.".".$timeblock).
@@ -89,10 +97,11 @@ sub fillcell{
       print p({class=>'details'},$1);
     };
 
-  }elsif ($timeblockowner =~ /^-shared-(.*)/){
+  }elsif ($timeblockowner =~ /^-shared-(.*)/){### is the paren necessary?
     if ($main::faculty){
       dropdown('-shared-');
-      print startform().textarea(-name=>'shared_names',-default=>$1,-rows=>5,
+### same note as above
+      print startform(-action=>"").textarea(-name=>'shared_names',-default=>$1,-rows=>5,
           -columns=>25,-maxlength=>50).
         hidden(-name=>'target_submit_block',
             -value=>$celldate.".".$timeblock).
@@ -100,24 +109,30 @@ sub fillcell{
     }else{
       my @timeblockowners = ($timeblockowner =~ /(\w+)/g);
       foreach (@timeblockowners){
-        if ($_ && !($_ eq'shared')){        
+        if ($_ && !($_ eq'shared')){###perhaps a better regex call would remove the need for this
           print p($main::labels{$_});
         }; 
- };
-      if ($main::username ~~ @timeblockowners){
-        print a({-href=>url(-relative=>1)."?weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner=-open-"},"give up");
+      };
+      if ($main::username ~~ @timeblockowners){###give user the option to give up if user is an owner
+        print a({-href=>url(-relative=>1)."?room=$main::room&weekstart=$main::weekstart&8targetdate=$celldate&timeblock=$timeblock&newowner=-open-"},"give up");
       };
 
     };
-  }elsif (($main::username eq $timeblockowner)||$main::faculty){
+  }
+#if user owns time block or is faculty, give dropdown menu to assign to anyway
+  elsif (($main::username eq $timeblockowner)||$main::faculty){
     dropdown($timeblockowner);
-  }elsif (($timeblockowner eq '-open-')&& $main::username){
-    print a({-href=>url(-relative=>1)."?weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner=$main::username"},"take");
+  }
+#if timeblock is open, give ability to clam if a user is logged in
+#need to add restriction, user needs to be part of room roster
+elsif (($timeblockowner eq '-open-')&& $main::username){
+    print a({-href=>url(-relative=>1)."?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner=$main::username"},"take");
 
   }else{
     print $main::labels{$timeblockowner} //$timeblockowner;
   }
-  };
+  }
+};
 
 #generates dropdown menu.  Single argument taken is the default selection: username
 #or special option (-open-,-reserved-,-shared-).
@@ -126,8 +141,9 @@ sub dropdown{
       -values=>[sort(keys %main::labels)],
       -default =>$_[0],
       -labels=>\%main::labels,
-      -onChange=>"window.location.href='index.pl?weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner='+this.value",
+      -onChange=>"window.location.href='schedule.pl?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner='+this.value",
       ); 
+
 };
 
 return 1;

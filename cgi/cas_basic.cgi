@@ -29,7 +29,7 @@ my $ua = new LWP::UserAgent;
 # There are several different possible values for cassvc.  For more information, search 
 # for 'cas application code' in the knowledge base (kb.iu.edu)
 my $cassvc = 'IU';
-my $casurl = 'http://silo.cs.indiana.edu:11304/room/cgi-bin/cas_basic.cgi';
+my $casurl = url();
 
 # Check for a CAS ticket
 my $cas_ticket = $cgi->param('casticket');

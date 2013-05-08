@@ -1,14 +1,8 @@
 create a notes text area under each week, write to seperate table
-reserved dropdown - make text box appear
-write script to reimport excel
-
-handle 2 people at same timeblock
 
 create initial semester times
-config files
-config-params: semester start, end
 
-
+number of timeblocks!
 semester setup
 
 DELETE EXPIRED SESSIONS REGULARLY
@@ -18,6 +12,5 @@ change color of owner based on when timeblock was selected
 
 
 BUGS:
-can still claim times if timeblock is opened
 
-handle before and after days better
+checkboxes don't accurately reflect settings on admin tools page.
