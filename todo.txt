@@ -5,6 +5,14 @@ create initial semester times
 number of timeblocks!
 semester setup
 
+
+make compatible with mod_perl - check global vars
+
+send some warnings to browser
+
+documentation
+
+
 DELETE EXPIRED SESSIONS REGULARLY
 maybe:
 

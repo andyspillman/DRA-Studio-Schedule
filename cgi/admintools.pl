@@ -3,9 +3,9 @@ use warnings;
 
 use CGI qw/:standard/;
 use CGI::Session;
-use IO::Handle;
+#use IO::Handle;
 $CGI::POST_MAX=1024 * 100;  # max 100K posts
-
+use CGI::Carp qw(fatalsToBrowser);
 use FindBin qw($Bin);
 use lib "$Bin/../lib/";
 use DateTime;
@@ -53,8 +53,9 @@ use DBI;
     print p("Currently logged in as $username").
       a({-href=>"$path_to_here/Logout.pl"}, "Logout");
   }; 
-#my $faculty = DatabaseUtil::isfaculty($username) unless !$username;
-  my $faculty = 1;
+our $faculty = DatabaseUtil::isfaculty($username) unless !$username;
+
+
   if($faculty){
 
     $DatabaseUtil::config_dbh->do('CREATE TABLE IF NOT EXISTS rooms (name TEXT DEFAULT new
@@ -88,13 +89,19 @@ use DBI;
       $DatabaseUtil::rosters_dbh->do("CREATE TABLE IF NOT EXISTS '$new_room' (username,realname,role);") or die;
 
     }elsif(param('semester_setup_room')){
-      DatabaseUtil::semestersetup(param('start_date'),param('end_date'),
-          param('semester_setup_room'))
-        unless((param('start_date')>param('end_date'))||
-            ((param('start_date')+50000)<param('end_date')));#check for super out-of-range dates
-#that would crash server or make gigantic databases, this should limit it to roughly 5 years.
-    }; 
+      my $start_date = param('start_date');
+      my $end_date = param('end_date');
+      my $semester_setup_room = param('semester_setup_room');
 
+#check for super out-of-range dates that would crash server or make gigantic databases, this should limit it to roughly 5 years.
+      if(($start_date>$end_date)||(($start_date+50000)<$end_date)){
+        print p("Dates seem out-of-range.  Limit of ~5 years.  Make sure start<end.");
+      }else{
+
+        DatabaseUtil::semestersetup(param('start_date'),param('end_date'), param('semester_setup_room'));
+          print p("Inserted  timeblock dates for ".param('semester_setup_room'));
+      }; 
+    }
 #generate array of room titles
 
       Delete_all();     

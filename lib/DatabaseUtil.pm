@@ -3,13 +3,13 @@ use warnings;
 
 use DateTime;
 use DateTime::Format::Strptime;
-
 use DBI;
 use FindBin qw($Bin);
 
 our $dbdir = "$Bin/../db";
 
 package DatabaseUtil;
+
 my $timeblocksdbname = 'rooms.db';#includes all of the actual timeblock ownership
 our $sessionsdbname='sessions.db';#CGI session info from CAS login
 our $rostersdbname='rosters.db';#room rosters
@@ -90,8 +90,8 @@ sub semestersetup{
 
     $timeblocks_dbh->do("DROP TABLE If EXISTS '$room'");
     $timeblocks_dbh->do("CREATE TABLE '$room' ('day','time','user')") or die;
-    my $startdate = $ymdformatter->parse_datetime($startdatestr);
-    my $enddate = $ymdformatter->parse_datetime($enddatestr);
+    my $startdate = $ymdformatter->parse_datetime($startdatestr)or die("Semester Setup failed: check start date formatting.");
+    my $enddate = $ymdformatter->parse_datetime($enddatestr)or die("Semester Setup failed: check end date formatting.");
     $startdate->set_formatter($ymdformatter);
     $enddate->set_formatter($ymdformatter);
 
@@ -110,7 +110,7 @@ sub getowner{
     my $user;
  #   print "day:$day\ntime:$time\n";    
 
-    $sth = $timeblocks_dbh->prepare("SELECT user FROM '$main::room' WHERE day =(0+?) AND time =(0+?)");
+    $sth = $timeblocks_dbh->prepare("SELECT user FROM '$main::room' WHERE day =(0+?) AND time =(0+?)")or die "can't open timeblock table for room: $main::room.  Run Semester Setup for this room.";
     $sth->execute($day,$time)
     or die "Couldn't execute statement: " . $sth->errstr;
     $sth->bind_col(1,\$user);
@@ -142,7 +142,7 @@ sub setowner{
 
 sub getrealname{
 
-#my $username =shift;
+my $username =shift;
 
   if(verify_room($main::room)){
     $sth = $rosters_dbh->prepare("SELECT realname FROM '$main::room'  WHERE username=?");
@@ -172,7 +172,7 @@ sub makelabels{
 sub isfaculty{
   $sth = $rosters_dbh->prepare('SELECT * FROM  faculty WHERE username=?');
   $sth->execute($_[0]);
-  my $isfaculty=((scalar $sth->fetchrow_array) ? 1 : 0);#if fetchrow_array()
-    return $isfaculty;                                    #returns undef, then
-}###create faculty table later
+  my $isfaculty=((scalar $sth->fetchrow_array) ? 1 : 0);
+    return $isfaculty;  
+}
 return 1;

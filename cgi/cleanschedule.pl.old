@@ -74,9 +74,9 @@ our $username = $session->param('username') // "";
 our $room = url_param('room');
 
 #set to determine permissions
-#$our $faculty = 
+our $faculty = 1;
 
-our $faculty = DatabaseUtil::isfaculty($username) unless !$username;
+#$faculty = DatabaseUtil::isfaculty($username) unless !$username;
 
 ###make labels for users' real names for drop downs from user table
 
@@ -189,8 +189,7 @@ sub updatedb {
     my $newowner         = url_param('newowner');
     my $reserved_details = param('reserved_details');
     my $shared_names     = param('shared_names');
-
-    #is user ADDING DETAILS or selecting a dropdown option?
+#is user ADDING DETAILS or selecting a dropdown option?
     if ( ( $reserved_details || $shared_names ) && $faculty ) {
 
         #parses hiddenfield to get desination timeblock and date
@@ -237,7 +236,7 @@ sub updatedb {
                     ||    # or is the timeblock open
                     ( $targetowner eq '-open-' )
                 )
-                && #is the nonfaculty user trying to choose reserved or shared, only faculty can do this
+                &&        #is the nonfaculty user trying to choose reserved or shared, only faculty can do this
                 !( $newowner eq '-reserved-' )
                 && !( $newowner eq '-shared' )
 
