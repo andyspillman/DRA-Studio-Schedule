@@ -56,9 +56,9 @@ sub roomnames{
 
 
 
-###since $room is used directly in SQL query, as table names cannot used in
-##prepared statementm, this runs a simple check #to make sure it is an actual
-#room that has a row in the config table, #else it could be SQL injection.
+###since $room is used directly in SQL query, and table names cannot used in
+##prepared statements, this runs a simple check to make sure it is an actual
+#room that has a row in the config table, else it could be SQL injection attack.
 sub verify_room{
   my $row;
   my $room = shift;
@@ -78,8 +78,10 @@ sub numberoftimeblocksforroom{
   $sth = $config_dbh->prepare('SELECT timeblock_length FROM rooms WHERE name = ?');
   $sth->execute($_[0]);
 
-  my $a = (scalar $sth->fetchrow_array())=~ /(^\d).*/; ###check
-    return (16/$1);
+  my $timeblocklength = ( $sth->fetchrow_array());
+ $timeblocklength  =~ /^(\d).*/; ###check
+ 
+return (16/$1);
 }
 
 sub semestersetup{
@@ -108,15 +110,13 @@ sub getowner{
     my $day = shift @_;
     my $time = shift @_;
     my $user;
- #   print "day:$day\ntime:$time\n";    
 
-    $sth = $timeblocks_dbh->prepare("SELECT user FROM '$main::room' WHERE day =(0+?) AND time =(0+?)")or die "can't open timeblock table for room: $main::room.  Run Semester Setup for this room.";
+    $sth = $timeblocks_dbh->prepare("SELECT user FROM '$main::room' WHERE day =(0+?) AND time =(0+?)") or die "can't open timeblock table for room: $main::room.  Run Semester Setup for this room.";
     $sth->execute($day,$time)
     or die "Couldn't execute statement: " . $sth->errstr;
     $sth->bind_col(1,\$user);
     $sth->fetch();
 #my @result = $sth->fetchrow_array();
-#    print $user;
     return $user;
   }
 #  my $owner =`sqlite3 database/test.db 'SELECT time$time from days where day=$date'`;
@@ -142,22 +142,24 @@ sub setowner{
 
 sub getrealname{
 
-my $username =shift;
+  my $username =shift;
 
   if(verify_room($main::room)){
-    $sth = $rosters_dbh->prepare("SELECT realname FROM '$main::room'  WHERE username=?");
- 
-  $sth->execute($_[0]);
-  $sth->bind_columns(\$realname);
-  $sth->fetch(); 
-  return $realname;
-};
+    $sth = $rosters_dbh->prepare("SELECT realname FROM (SELECT * FROM '$main::room' UNION SELECT * FROM 'faculty')  WHERE username=?");
+    $sth->execute($username);
+    $sth->bind_columns(\$realname);  
+    $sth->fetch();
+    return $realname;
+    
+  }
 }
+
+
 
 sub makelabels{
 
-#  if(verify_room($main::room)){
-    $sth = $rosters_dbh->prepare("SELECT username, realname FROM '$main::room'");
+  if(verify_room($main::room)){
+    $sth = $rosters_dbh->prepare("SELECT username, realname FROM (SELECT * FROM '$main::room' UNION SELECT * FROM 'faculty')") or die "can't find roster for $main::room.  Is there one uploaded?";;
   
   $sth->execute();
   my (@labels, $username, $realname);
@@ -166,7 +168,7 @@ sub makelabels{
   }
   push (@labels, ('-open-', '-open-'));
   return \@labels;
-#  }
+  }
 };
 
 sub isfaculty{

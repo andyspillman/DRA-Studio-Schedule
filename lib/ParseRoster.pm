@@ -23,7 +23,7 @@ sub parse{
     my $sth = $DatabaseUtil::rosters_dbh->prepare("INSERT INTO '$main::which_room' VALUES (?, ?)");
   my $faculty_sth = $DatabaseUtil::rosters_dbh->prepare("INSERT INTO 'faculty' VALUES (?, ?)");
 
-  my ($username,$realname,$role);
+  my ($username,$realname,$role, $name);
 
   my $workbook = Spreadsheet::ParseExcel::Workbook->Parse($main::roster_fh);
   my $worksheet =$workbook->worksheet(0);
@@ -31,12 +31,18 @@ sub parse{
   my @row_range = $worksheet->row_range();
 
   for(my $iR = 1; $iR <= $row_range[1]; $iR++) {
-    $username = $worksheet->get_cell($iR, $username_col)->value();
-    my $name = $worksheet->get_cell($iR, $realname_col)->value();
-    $name =~ /(\w*),\s(\w*)\s?/;
-    $realname =  $2." ".$1; 
-# ^ "Lastname, First Middle" -> "First Lastname"
-    $role = $worksheet->get_cell($iR, $role_col)->value();
+    $username = ($worksheet->get_cell($iR, $username_col)or die "error in row $iR, User ID column. are there blank cells/rows mid-spreadseet?  make sure the first blank row is also the last")->value();
+    $name = ($worksheet->get_cell($iR, $realname_col)or die "error in row $iR, Name column. are there blank cells/rows mid-spreadseet?  make sure the first blank row is also the last")->value();
+
+
+#  if Name="Lastname, First Middle" change to "First Lastname"
+#  else keep the same
+    if( $name =~ /(\w*),\s(\w*)\s?/){
+      $realname =  $2." ".$1; 
+    }else{
+      $realname = $name;
+}
+    $role = ($worksheet->get_cell($iR, $role_col)or die "error in row $iR, Role column. are there blank cells/rows mid-spreadseet?  make sure the first blank row is also the last")->value();
     if($role eq 'student'){
       $sth->execute($username, $realname);
       print "<span>added $realname ($username) to $main::which_room<BR></span>"; 

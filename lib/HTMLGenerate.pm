@@ -10,18 +10,19 @@ use DatabaseUtil;
 
 package HTMLGenerate;
 use CGI qw/:standard/;
-use CGI::Session;
+#use CGI::Session;
 
 #file vars
-my $celldate;
+my ($celldate,$maxtimeblock,$timeblocklength);
 my $tablecol = 0;
 my $timeblock = 1;##this correlates with row, and row 0 is the headings, days
                   #of the week, so it makes sense to start on 1
 
-
 ###called in main, builds table 
 sub buildtable{
-  until ($timeblock>4){##check for how many timeblocks there actually are
+$maxtimeblock = DatabaseUtil::numberoftimeblocksforroom($main::room);
+$timeblocklength = (16/$maxtimeblock);
+  until ($timeblock>$maxtimeblock){##check for how many timeblocks there actually are
     print "<tr>";
     until ($tablecol>7){
       makecell();
@@ -36,15 +37,50 @@ sub buildtable{
 
 ###called in buildtable(), makes headings and calls fillcell() for the juicy stuff
 sub makecell{
-  my @timeblockname = ("", ####call array of array refs of the various means of labeling
+my @timeblockname;
+if ($timeblocklength==1){
+   @timeblockname = ("",
+      "8 am - 9 am",
+      "9 am - 10 am",
+      "10 am - 11 am",
+      "11 am - 12 pm",
+      "12 am - 1 pm",
+      "1 pm - 2 pm",
+      "2 pm - 3 pm",
+      "3 pm - 4 pm",
+      "4 pm - 5 pm",
+      "5 pm - 6 pm",
+      "6 pm - 7 pm",
+      "7 pm - 8 pm",
+      "8 pm - 9 pm",
+      "9 pm - 10 pm",
+      "10 pm - 11 pm",
+      "11 pm - 12 am",
+      );
+
+} elsif ($timeblocklength==2){
+ @timeblockname = ("",
+      "8 am - 10 am",
+      "10 am - 12 pm",
+      "12 pm - 2 pm",
+      "2 pm - 4 pm",
+      "4 pm - 6 am",
+      "6 pm - 8 pm",
+      "8 pm - 10 pm",
+      "10 pm - 12 am",
+      );
+ 
+}else{
+ @timeblockname = ("",
       "8 am - 12 pm",
       "12 pm - 4 pm",
       "4-pm - 8 pm",
       "8 pm - 12 am",
       );
+}
   print "<td>";
   if ($tablecol==0) {
-    print "<p class=\"timecol\">", $timeblockname[$timeblock],"</p>";
+    print "<p class=\"timecol\"> $timeblockname[$timeblock]</p>";
   } else {
     fillcell();
   };
@@ -114,18 +150,18 @@ sub fillcell{
         }; 
       };
       if ($main::username ~~ @timeblockowners){###give user the option to give up if user is an owner
-        print a({-href=>url(-relative=>1)."?room=$main::room&weekstart=$main::weekstart&8targetdate=$celldate&timeblock=$timeblock&newowner=-open-"},"give up");
+        print a({-href=>url(-relative=>1)."?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner=-open-"},"give up");
       };
 
     };
   }
-#if user owns time block or is faculty, give dropdown menu to assign to anyway
+#if user owns time block or is faculty, give dropdown menu to assign to anyone
   elsif (($main::username eq $timeblockowner)||$main::faculty){
     dropdown($timeblockowner);
   }
 #if timeblock is open, give ability to clam if a user is logged in
 #need to add restriction, user needs to be part of room roster
-elsif (($timeblockowner eq '-open-')&& $main::username){
+elsif (($timeblockowner eq '-open-')&& $main::labels{$main::username}){
     print a({-href=>url(-relative=>1)."?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner=$main::username"},"take");
 
   }else{
@@ -137,12 +173,23 @@ elsif (($timeblockowner eq '-open-')&& $main::username){
 #generates dropdown menu.  Single argument taken is the default selection: username
 #or special option (-open-,-reserved-,-shared-).
 sub dropdown{
+
+my $default = shift;
+
+
+# if the username that is susposed to be selected is not on the labels, push the username to the label
+#
+if (!($main::labels{$default})){
+    $main::labels{$default}=$default;
+    };
+
   print popup_menu(
       -values=>[sort(keys %main::labels)],
-      -default =>$_[0],
+      -default =>$default,
       -labels=>\%main::labels,
-      -onChange=>"window.location.href='schedule.pl?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner='+this.value",
-      ); 
+      -onChange=>"window.location.href='schedule.cgi?room=$main::room&weekstart=$main::weekstart&targetdate=$celldate&timeblock=$timeblock&newowner='+this.value",
+
+      -autocomplete=>"off"      ); 
 
 };
 

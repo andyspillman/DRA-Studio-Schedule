@@ -1,14 +1,12 @@
+GPL notices;
+
+CSS;
+
 create a notes text area under each week, write to seperate table
 
 create initial semester times
 
-number of timeblocks!
-semester setup
-
-
 make compatible with mod_perl - check global vars
-
-send some warnings to browser
 
 documentation
 

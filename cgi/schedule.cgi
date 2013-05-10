@@ -1,13 +1,15 @@
+#!/usr/bin/perl
 use strict;
 use warnings;
 require 5.10.0;    ##only because smartmatch ~~ is used, I think
 
-use CGI qw/:standard/;
+use CGI qw/:standard -nosticky/;
 use CGI::Session;
 use CGI::Carp qw(fatalsToBrowser);
 
 $CGI::POST_MAX        = 1024 * 100;    # max 100K posts
 $CGI::DISABLE_UPLOADS = 1;             # no uploads
+
 
 use FindBin qw($Bin);
 use lib "$Bin/../lib/";
@@ -16,7 +18,7 @@ use DateTime::Format::Strptime;
 use DatabaseUtil;
 use HTMLGenerate;
 
-##create sessions table if it does not already exist.  The db file should be
+##create sessions tableif it does not already exist.  The db file should be
 #created automatically.  To clean orphan sessions, either sessions table
 #should be dropped or the .db file should be deleted regularly (chron)
 #
@@ -40,7 +42,7 @@ if (
     )
   )
 {
-    print $session->header( -Refresh => "0; URL=index.pl" );
+    print $session->header( -Refresh => "0; URL=index.cgi" );
     exit 1;
 }
 
@@ -74,7 +76,7 @@ our $username = $session->param('username') // "";
 our $room = url_param('room');
 
 #set to determine permissions
-#$our $faculty = 
+#our $faculty = 1;
 
 our $faculty = DatabaseUtil::isfaculty($username) unless !$username;
 
@@ -90,7 +92,7 @@ our %labels = @labels;    #make hash from array
 
 ###START HTML
 if ( !url_param('room') ) {
-    print $session->header( -Refresh => "0; URL=index.pl" );
+    print $session->header( -Refresh => "0; URL=index.cgi" );
 }
 print $session->header( -expires => 'now' );
 print start_html(
@@ -103,33 +105,35 @@ print start_html(
         }
     )
 );
+
+print "<div id=\"header\">";
 if ( !$username ) {
     print a( { -href => 'cas_basic.cgi' }, "CAS Login" );
 }
 else {
-    if ( DatabaseUtil::getrealname($username) ) {
-        print p(
-            "Currently logged in as " . DatabaseUtil::getrealname($username) );
+    if ( DatabaseUtil::getrealname($username)||$faculty ) {
+        print 
+            "Currently logged in as " . DatabaseUtil::getrealname($username) ;
     }
     else {
-        print p("$username is not registered for this room, read-only");
+        print span("$username is not registered for this room, read-only");
     }
 
-    print a( { -href => url( -base => 1 ) . "/room/cgi-bin/Logout.pl" },
-        "Logout" );
+    print span(a( { -href => url( -base => 1 ) . "/room/cgi-bin/Logout.cgi" },
+        "Logout " ));
     if ($faculty) {
-        print a( { -href => url( -base => 1 ) . "/room/cgi-bin/admintools.pl" },
+        print a( { -href => url( -base => 1 ) . "/room/cgi-bin/admintools.cgi" },
             "Faculty Tools" );
     }
 }
-print span( { class => 'room_title' }, " " . param('room') . " Schedule " );
+print span( { id => 'room_title' }, " " . param('room') . " Schedule " );
 print span(
-    { class => 'week' },
+    { id => 'week' },
     "Week of: "
       . $weekstart->strftime('%B %d') . " - "
       . $weekstart->clone()->add( days => 6 )->strftime('%B %d') . "<BR>"
 );
-
+print "</div>";
 updatedb();    #updates database based on query, prints any info before table
 print <<STOP1;
     <table>
@@ -150,6 +154,8 @@ STOP1
 HTMLGenerate::buildtable();
 
 ###week navigation under table
+
+print "<div id= \"undertable\">";
 print p(
     a(
         {
@@ -159,7 +165,7 @@ print p(
         },
         "Previous Week"
       )
-      . a(
+     ).p( a(
         {
                 -href => url( -relative => 1 )
               . "?room=$room&weekstart="
@@ -174,8 +180,8 @@ if ( !( ( $weekstart < $curr_dt ) && ( $curr_dt < $weekend ) ) ) {
         a( { -href => url( -relative => 1 ) . "?room=$room" }, "Current Week" )
     );
 }
-print a( { -href => 'index.pl' }, "Back to Schedule Selection" );
-
+print a( { -href => 'index.cgi' }, "Back to Index" );
+print "</div>";
 print end_html();
 
 # END HTML
@@ -221,33 +227,46 @@ sub updatedb {
         my $targetowner =
           DatabaseUtil::getowner( $targetdate, $targettimeblock );
 
+
+
+
 ###the below giant if statement in English:
    #does the username exist for the room AND is the
    #new owner authorized for this room AND does the currently logged in user own
    #the block, unless it is owned by no one AND is the user not trying to select
    #-reserved-, OR is current user faculty, in which case nothing else matters
+if (($faculty)
+    ||(($newowner ne '-reserved-')&&($newowner ne '-shared-')&&(($targetowner=~/$username/)||(($targetowner eq '-open-') && (DatabaseUtil::getrealname($username))
 
-        if (
-            (    #is someone on the roster logged in?
-                ( DatabaseUtil::getrealname($username) )
-                &&    #does the new owner exist for this room
-                ( $labels{$newowner} )
-                && (    #does the current user own it
-                    ( $targetowner =~ /$username/ )
-                    ||    # or is the timeblock open
-                    ( $targetowner eq '-open-' )
-                )
-                && #is the nonfaculty user trying to choose reserved or shared, only faculty can do this
-                !( $newowner eq '-reserved-' )
-                && !( $newowner eq '-shared' )
+))))
 
-                #finally, is the user a godly faculty
-            )
-            || $faculty
-          )
         {
             DatabaseUtil::setowner( $targetdate, $targettimeblock, $newowner );
         }
+
+
+
+#        if (
+#            (    #is someone on the roster logged in?
+#                ( DatabaseUtil::getrealname($username) )
+#                &&    #does the new owner exist for this room
+#                ( $labels{$newowner} )
+#                && (    #does the current user own it
+#                    ( $targetowner =~ /$username/ )
+#                    ||    # or is the timeblock open
+#                    ( $targetowner eq '-open-' )
+#                )
+#                && #is the nonfaculty user trying to choose reserved or shared, only faculty can do this
+#                !( $newowner eq '-reserved-' )
+#                && !( $newowner eq '-shared' )
+#
+#                #finally, is the user a godly faculty
+#            )
+#            || $faculty
+#          )
+#        {
+#            DatabaseUtil::setowner( $targetdate, $targettimeblock, $newowner );
+#        }
         else {
             print "Please log in again to make changes.  Only faculty can select
 reserved or shared.";

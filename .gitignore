@@ -1,3 +1,9 @@
 *.xls
 *.db
 *.swp
+DateTime/
+Spreadsheet/
+DateTime.pm
+DateTimePPExtra.pm
+DateTimePP.pm
+OLE
