@@ -1,6 +1,7 @@
 *.xls
 *.db
 *.swp
+old/
 DateTime/
 Spreadsheet/
 DateTime.pm

@@ -10,10 +10,10 @@ use LWP::UserAgent;
 use CGI qw/:standard/;
 
 use CGI::Session;
-require CGI::Session::Driver::DBI;  #is this necessary?
+require CGI::Session::Driver::DBI;    #is this necessary?
 
-$CGI::POST_MAX        = 1024 * 100;    # max 100K posts
-$CGI::DISABLE_UPLOADS = 1;             # no uploads
+$CGI::POST_MAX        = 1024 * 100;   # max 100K posts
+$CGI::DISABLE_UPLOADS = 1;            # no uploads
 
 use FindBin qw($Bin);
 use lib "$Bin/../lib/";

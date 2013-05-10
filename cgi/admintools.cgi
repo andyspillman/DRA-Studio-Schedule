@@ -1,4 +1,26 @@
 #!/usr/bin/perl
+
+#  IU Department of Recording Arts Studio Sign Out v0.1
+#
+#  Allows students and faculty to reserve time in rooms, or anything else suited
+#  for a schedule.
+#  
+#  Copyright (C) 2013 Andy Spillman - andy at andyspillman dot com
+#  
+#  IU Department of Recording Arts Studio Sign Out is free software: you can
+#  redistribute it and/or modify it under the terms of the GNU General Public
+#  License as published by the Free Software Foundation, either version 3 of the
+#  License, or (at your option) any later version.
+#  
+#  IU Department of Recording Arts Studio Sign Out is distributed in the hope
+#  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+#  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License along with
+#  IU Department of Recording Arts Studio Sign Out.  If not, see
+#  <http://www.gnu.org/licenses/>.
+
 use strict;
 use warnings;
 
@@ -19,23 +41,6 @@ use ParseRoster;
 
 our $dbdir = '../db';
 use DBI;
-
-## undef may be returned if it's not a valid file handle
-#      my $roster_405_fh  = upload('roster_405');
-#      if (defined $roster_405_fh) {
-## Upgrade the handle to one compatible with IO::Handle:
-#      my $io_handle = $roster_405_fh->handle;
-#      open (OUTFILE,">>","$Bin/temp");
-#      while (my $I = $io_handle->read(my $buffer,1024)) {
-#      print OUTFILE $buffer;
-#
-#      };
-##open (INFILE,'<',"$Bin/../temp");
-##print INFILE;
-#      close OUTFILE or die;
-##Delete() or die;
-##undef $io_handle or die;
-#
 
 #database connection for CGI Session
 my $session =
@@ -135,15 +140,16 @@ if ($faculty) {
     }
 
     #generate array of room titles
-    Delete_all(); #delete all params, possibly unnecessary because of CGI (-nosticky)
- print h1("Schedule Options:");
+    Delete_all()
+      ;    #delete all params, possibly unnecessary because of CGI (-nosticky)
+    print h1("Schedule Options:");
     foreach my $room_name ( @{ DatabaseUtil::roomnames() } ) {
         $sth = $DatabaseUtil::config_dbh->prepare(
             "SELECT timeblock_length, visible  from rooms where name=?");
         $sth->execute($room_name);
         $sth->bind_columns( \$timeblock_length, \$visible );
-        
-$sth->fetch();
+
+        $sth->fetch();
         print h2("$room_name Configuration")
           . start_multipart_form()
           . span("Length of time blocks:")
@@ -203,14 +209,18 @@ $sth->fetch();
       )
       . submit()
       . end_form();
-    print p(a( { -href => 'index.cgi' }, "Back to Index" ));
+    print p( a( { -href => 'index.cgi' }, "Back to Index" ) );
 
-    print p(a( { -href => "README.txt"},"README" ));
+
+ print p( a( { -href => "README.txt" }, "README" ) );
+
+ print p( a( { -href => "semestersetupnotes.txt" }, "Semester Setup Notes" ) );
+
 }
 else {
     print p(
         "You don't appear to be faculty. Try logging out and revist this page.")
-      . a( { -href => url( -base => 1 ) . "/room/cgi-bin/Logout.cgi" },
+      . a( { -href =>"Logout.cgi" },
         "Logout" );
 }
 

@@ -1,3 +1,10 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use CGI qw/:standard/;;
+print header('text/plan');
+print <<EOF
 IU Department of Recording Arts Studio Sign Out
 
 Allows students and faculty to reserve time in rooms, or anything else suited
@@ -146,4 +153,5 @@ then kstrauss (or whoever) will be able to access Faculty Tools and finish
 setting up everything.
 
 END
+EOF
 

@@ -1,4 +1,27 @@
 #!/usr/bin/perl
+
+#  IU Department of Recording Arts Studio Sign Out v0.1
+#
+#  Allows students and faculty to reserve time in rooms, or anything else suited
+#  for a schedule.
+#  
+#  Copyright (C) 2013 Andy Spillman - andy at andyspillman dot com
+#  
+#  IU Department of Recording Arts Studio Sign Out is free software: you can
+#  redistribute it and/or modify it under the terms of the GNU General Public
+#  License as published by the Free Software Foundation, either version 3 of the
+#  License, or (at your option) any later version.
+#  
+#  IU Department of Recording Arts Studio Sign Out is distributed in the hope
+#  that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+#  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License along with
+#  IU Department of Recording Arts Studio Sign Out.  If not, see
+#  <http://www.gnu.org/licenses/>.
+
+
 use strict;
 use warnings;
 require 5.10.0;    ##only because smartmatch ~~ is used, I think
@@ -9,7 +32,6 @@ use CGI::Carp qw(fatalsToBrowser);
 
 $CGI::POST_MAX        = 1024 * 100;    # max 100K posts
 $CGI::DISABLE_UPLOADS = 1;             # no uploads
-
 
 use FindBin qw($Bin);
 use lib "$Bin/../lib/";
@@ -111,18 +133,22 @@ if ( !$username ) {
     print a( { -href => 'cas_basic.cgi' }, "CAS Login" );
 }
 else {
-    if ( DatabaseUtil::getrealname($username)||$faculty ) {
-        print 
-            "Currently logged in as " . DatabaseUtil::getrealname($username) ;
+    if ( DatabaseUtil::getrealname($username) || $faculty ) {
+        print "Currently logged in as " . DatabaseUtil::getrealname($username);
     }
     else {
         print span("$username is not registered for this room, read-only");
     }
 
-    print span(a( { -href => url( -base => 1 ) . "/room/cgi-bin/Logout.cgi" },
-        "Logout " ));
+    print span(
+        a(
+            { -href => url( -base => 1 ) . "/room/cgi-bin/Logout.cgi" },
+            "Logout "
+        )
+    );
     if ($faculty) {
-        print a( { -href => url( -base => 1 ) . "/room/cgi-bin/admintools.cgi" },
+        print a(
+            { -href => url( -base => 1 ) . "/room/cgi-bin/admintools.cgi" },
             "Faculty Tools" );
     }
 }
@@ -164,16 +190,18 @@ print p(
               . $weekstart->clone()->subtract( weeks => 1 )
         },
         "Previous Week"
-      )
-     ).p( a(
+    )
+  )
+  . p(
+    a(
         {
                 -href => url( -relative => 1 )
               . "?room=$room&weekstart="
               . $weekstart->clone()->add( weeks => 1 )
         },
         "Next Week"
-      )
-);
+    )
+  );
 
 if ( !( ( $weekstart < $curr_dt ) && ( $curr_dt < $weekend ) ) ) {
     print p(
@@ -228,45 +256,34 @@ sub updatedb {
           DatabaseUtil::getowner( $targetdate, $targettimeblock );
 
 
+# This detmines if someone is authorized to change a timeblock. If a user is
+# faculty, they can change anything.  If not, then the user must NOT be
+# changing it to -reserved- or -shared-.  Additionally, user must EITHER be
+# already assigned to the timeblock OR be (a member of the roster for the
+# current room AND be changing an open timeslot).
+#
+# (if someone gets dropped from a room roster, they still have ownership of the
+# timeblock)
 
+        if (
+            ($faculty)
+            || (
+                   ( $newowner ne '-reserved-' )
+                && ( $newowner ne '-shared-' )
+                && (
+                    ( $targetowner =~ /$username/ ) || (
+                           ( $targetowner eq '-open-' )
+                        && ( DatabaseUtil::getrealname($username) )
 
-###the below giant if statement in English:
-   #does the username exist for the room AND is the
-   #new owner authorized for this room AND does the currently logged in user own
-   #the block, unless it is owned by no one AND is the user not trying to select
-   #-reserved-, OR is current user faculty, in which case nothing else matters
-if (($faculty)
-    ||(($newowner ne '-reserved-')&&($newowner ne '-shared-')&&(($targetowner=~/$username/)||(($targetowner eq '-open-') && (DatabaseUtil::getrealname($username))
-
-))))
+                    )
+                )
+            )
+          )
 
         {
             DatabaseUtil::setowner( $targetdate, $targettimeblock, $newowner );
         }
 
-
-
-#        if (
-#            (    #is someone on the roster logged in?
-#                ( DatabaseUtil::getrealname($username) )
-#                &&    #does the new owner exist for this room
-#                ( $labels{$newowner} )
-#                && (    #does the current user own it
-#                    ( $targetowner =~ /$username/ )
-#                    ||    # or is the timeblock open
-#                    ( $targetowner eq '-open-' )
-#                )
-#                && #is the nonfaculty user trying to choose reserved or shared, only faculty can do this
-#                !( $newowner eq '-reserved-' )
-#                && !( $newowner eq '-shared' )
-#
-#                #finally, is the user a godly faculty
-#            )
-#            || $faculty
-#          )
-#        {
-#            DatabaseUtil::setowner( $targetdate, $targettimeblock, $newowner );
-#        }
         else {
             print "Please log in again to make changes.  Only faculty can select
 reserved or shared.";
