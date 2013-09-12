@@ -1,6 +1,6 @@
 IU Department of Recording Arts Studio Sign Out
 
-Allows students and faculty to reserve time in rooms, or anything else suited
+Allows students and faculty to reserve time in studios, or anything else suited
 for a schedule.
 
 Copyright (C) 2013 Andy Spillman - andy at andyspillman dot com 
@@ -31,7 +31,7 @@ SCHEDULE PAGES
 
 Each studio has a schedule. Students on the roster for a given room can take
 open time slots.  Once a timeslot is taken, it can be assigned to anyone else on
-the roster, or given up.  Faculty have acess to two more options:
+the roster, or given up.  Faculty have access to two more options:
 
 -shared- allows more than one user to own a timeblock.  Any of them can give up
 this time on behalf of everyone.  It then becomes a regular open timeblock.
@@ -40,11 +40,13 @@ this time on behalf of everyone.  It then becomes a regular open timeblock.
 info is necessary.
 
 
-FACULTY TOOLS Faculty Tools: On this page, faculty can add/remove rooms.  For
-each room, Faculty can set: timeblock length - 1,2,or 4 hours.  I recommend
-aginst using 4 hours.  visibilty  - affects whether index displays room and
-nothing else
+FACULTY TOOLS 
 
+Faculty Tools: On this page, faculty can add/remove rooms.  For
+each room, Faculty can set: 
+
+timeblock length - 1,2,or 4 hours.  I recommend against using 4 hours. 
+visibility  - affects whether index displays room and nothing else
 delete - by checking box and clicking submit roster
 
 upload - upload an Excel Workbook .xls (not .xlsx) which contains a roster for
@@ -53,7 +55,7 @@ Any faculty from any roster upload will be recognized. Top row is ignored for
 column headings.  Column mappings are as follows:
 
 real name                            = column 1
-username = column 2
+username                             = column 2
 role (instructor or <anything else>) = column 4 
 
 
@@ -85,7 +87,7 @@ ADDITIONAL DETAILS
 
 
 This has been developed and tested using the CGI functionality built into
-Apache Tomcat/5.5.17 mostly becuase I already had convenient access to a server
+Apache Tomcat/5.5.17 mostly because I already had convenient access to a server
 running it.  If used with mod_perl, Apache::PerlRun should be used, if possible,
 to be safe until it can be more thoroughly tested.
 
