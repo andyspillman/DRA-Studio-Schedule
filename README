@@ -113,15 +113,16 @@ support.  Communication to database is accomplished via DBI.
 
    This contains tables mapping individual timeblocks to their owners.  Each
    table name is the name of a room.  If deleted, all rooms will need to be
-   deleted and re-added on the Faculty Tools page.  Obviously, all timeblock
-   ownership data will be lost, but it will be automatically regenerated.
+   deleted and re-added on the Faculty Tools page. All timeblock
+   ownership data will be lost.  The rooms.db file, with default ownership data
+   will be regenerated.
+
 
 
 
  - config.db 
 
-   contains configuration information for each room.  It can be automatically
-   generated.
+   contains configuration information for each room.
 
 
  - rosters.db 
